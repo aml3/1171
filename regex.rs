@@ -162,7 +162,7 @@ impl State
 
 fn main()
 {
-	let test = "a.b";
+	let test = std::os::args()[1];
 	let strings = ~[~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
 	let mut nfa = NFA::new();
 	let head_state = State::new('%', false);
