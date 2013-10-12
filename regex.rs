@@ -64,6 +64,13 @@ impl NFA
 						next.push(self.states[curr[i]].transitions[j]);
 					}
 				} 
+				else if self.states[curr[i]].val == '.'
+				{
+					for j in range(0, self.states[curr[i]].transitions.len())
+					{
+						next.push(self.states[curr[i]].transitions[j]);
+					}
+				}
 				else if self.states[curr[i]].val == '%'
 				{
 					for j in range(0, self.states[curr[i]].transitions.len())
@@ -155,8 +162,8 @@ impl State
 
 fn main()
 {
-	let test = "abb*";
-	let strings = ~[~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa"];
+	let test = "a.b";
+	let strings = ~[~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
 	let mut nfa = NFA::new();
 	let head_state = State::new('%', false);
 	nfa.add_state(head_state);
@@ -211,6 +218,31 @@ fn main()
 						// since it's a *
 						nfa.link_states(j, j-2);
 					}
+			'+'	=>	{
+						let mut state_in = nfa.pop();
+						j -= 1;
+						let c = state_in.val;
+						let state_curr = State::new(c, false);
+						state_in.change_val('%');
+						let state_out = State::new('%', false);
+
+						// don't need to link
+						nfa.add_state(state_in);
+						j += 1;
+
+						// link to state_in
+						nfa.add_state(state_curr);
+						j += 1;
+						nfa.link_states(j-1, j);
+
+						// link to state_curr
+						nfa.add_state(state_out);
+						j += 1;
+						nfa.link_states(j-1, j);
+
+						// link state_out to state_in
+						nfa.link_states(j, j-2);
+					}
 			'?'	=>	{
 						let mut state_in = nfa.pop();
 						j -= 1;
@@ -239,6 +271,13 @@ fn main()
 						// link state_in to state_out,
 						// since it's a ?
 						nfa.link_states(j-2, j);
+					}
+			'.'	=>	{
+						let state = State::new(c, false);
+						nfa.add_state(state);
+						j += 1;
+						// link with previous
+						nfa.link_states(j-1, j);
 					}
 			_	=>	{
 						let state = State::new(c, false);
