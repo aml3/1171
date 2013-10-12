@@ -163,136 +163,152 @@ impl State
 fn main()
 {
 	let test = std::os::args()[1];
-	let strings = ~[~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
+	let strings = ~[~"", ~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
 	let mut nfa = NFA::new();
+	let mut parenthesis: ~[int] = ~[];
 	let head_state = State::new('%', false);
 	nfa.add_state(head_state);
 	let mut j = 0;
+	let mut escaped = false;
 	for i in range(1,(test.len()+1) as int)
 	{
 		let c = test.char_at((i-1) as uint);
-		match c
+		if c == '\\'
 		{
-			'*'	=>	{
-						// prev state j
-						// state_in 
-						// state_curr
-						// state_out
-						let mut state_in = nfa.pop();
-						j -= 1;
-						let c = state_in.val;
-						let state_curr = State::new(c, false);
-						state_in.change_val('%');
-						let state_out = State::new('%', false);
+			escaped = true;
+		}
+		else if c == '(' && !escaped
+		{
+			// note the place and make an 'in' state
+			parenthesis.push(i);
+			let state_in = State::new('%', false);
+			nfa.add_state(state_in);
+			j += 1;
 
-						// don't need to link
-						nfa.add_state(state_in);
-						j += 1;
-						// prev state 
-						// state_in j
-						// state_curr
-						// state_out 
+			// link this and the previous
+			nfa.link_states(j-1, j);
+		}
+		else if c == '*' && !escaped
+		{
+			// prev state j
+			// state_in 
+			// state_curr
+			// state_out
+			let mut state_in = nfa.pop();
+			j -= 1;
+			let c = state_in.val;
+			let state_curr = State::new(c, false);
+			state_in.change_val('%');
+			let state_out = State::new('%', false);
 
-						// link to state_in
-						nfa.add_state(state_curr);
-						j += 1;
-						// prev state 
-						// state_in
-						// state_curr j
-						// state_out 
-						nfa.link_states(j-1, j);
+			// don't need to link
+			nfa.add_state(state_in);
+			j += 1;
+			// prev state 
+			// state_in j
+			// state_curr
+			// state_out 
 
-						// link to state_curr
-						nfa.add_state(state_out);
-						j += 1;
-						// prev state 
-						// state_in
-						// state_curr
-						// state_out j
-						nfa.link_states(j-1, j);
+			// link to state_in
+			nfa.add_state(state_curr);
+			j += 1;
+			// prev state 
+			// state_in
+			// state_curr j
+			// state_out 
+			nfa.link_states(j-1, j);
 
-						// link prev state to state_out
-						nfa.link_states(j-3, j);
+			// link to state_curr
+			nfa.add_state(state_out);
+			j += 1;
+			// prev state 
+			// state_in
+			// state_curr
+			// state_out j
+			nfa.link_states(j-1, j);
 
-						// link state_out to state_in,
-						// since it's a *
-						nfa.link_states(j, j-2);
-					}
-			'+'	=>	{
-						let mut state_in = nfa.pop();
-						j -= 1;
-						let c = state_in.val;
-						let state_curr = State::new(c, false);
-						state_in.change_val('%');
-						let state_out = State::new('%', false);
+			// link prev state to state_out
+			nfa.link_states(j-3, j);
 
-						// don't need to link
-						nfa.add_state(state_in);
-						j += 1;
+			// link state_out to state_in,
+			// since it's a *
+			nfa.link_states(j, j-2);
+		}
+		else if c == '+' && !escaped
+		{
+			let mut state_in = nfa.pop();
+			j -= 1;
+			let c = state_in.val;
+			let state_curr = State::new(c, false);
+			state_in.change_val('%');
+			let state_out = State::new('%', false);
 
-						// link to state_in
-						nfa.add_state(state_curr);
-						j += 1;
-						nfa.link_states(j-1, j);
+			// don't need to link
+			nfa.add_state(state_in);
+			j += 1;
 
-						// link to state_curr
-						nfa.add_state(state_out);
-						j += 1;
-						nfa.link_states(j-1, j);
+			// link to state_in
+			nfa.add_state(state_curr);
+			j += 1;
+			nfa.link_states(j-1, j);
 
-						// link state_out to state_in
-						nfa.link_states(j, j-2);
-					}
-			'?'	=>	{
-						let mut state_in = nfa.pop();
-						j -= 1;
-						let c = state_in.val;
-						let state_curr = State::new(c, false);
-						state_in.change_val('%');
-						let state_out = State::new('%', false);
+			// link to state_curr
+			nfa.add_state(state_out);
+			j += 1;
+			nfa.link_states(j-1, j);
 
-						// don't need to link
-						nfa.add_state(state_in);
-						j += 1;
+			// link state_out to state_in
+			nfa.link_states(j, j-2);
+		}
+		else if c == '?' && !escaped
+		{
+			let mut state_in = nfa.pop();
+			j -= 1;
+			let c = state_in.val;
+			let state_curr = State::new(c, false);
+			state_in.change_val('%');
+			let state_out = State::new('%', false);
 
-						// link to state_in
-						nfa.add_state(state_curr);
-						j += 1;
-						nfa.link_states(j-1, j);
+			// don't need to link
+			nfa.add_state(state_in);
+			j += 1;
 
-						// link to state_curr
-						nfa.add_state(state_out);
-						j += 1;
-						nfa.link_states(j-1, j);
+			// link to state_in
+			nfa.add_state(state_curr);
+			j += 1;
+			nfa.link_states(j-1, j);
 
-						// link prev state to state_out
-						nfa.link_states(j-3, j);
+			// link to state_curr
+			nfa.add_state(state_out);
+			j += 1;
+			nfa.link_states(j-1, j);
 
-						// link state_in to state_out,
-						// since it's a ?
-						nfa.link_states(j-2, j);
-					}
-			'.'	=>	{
-						let state = State::new(c, false);
-						nfa.add_state(state);
-						j += 1;
-						// link with previous
-						nfa.link_states(j-1, j);
-					}
-			_	=>	{
-						let state = State::new(c, false);
-						nfa.add_state(state);
-						j += 1;
-						// link with previous
-						nfa.link_states(j-1, j);
-					}
-		};
+			// link prev state to state_out
+			nfa.link_states(j-3, j);
 
-		//println("");
-		//nfa.print();
-		//println("");
+			// link state_in to state_out,
+			// since it's a ?
+			nfa.link_states(j-2, j);
+		}
+		else if c == '.' && !escaped
+		{
+			let state = State::new(c, false);
+			nfa.add_state(state);
+			j += 1;
+			// link with previous
+			nfa.link_states(j-1, j);
+		}
+		else
+		{
+			let state = State::new(c, false);
+			nfa.add_state(state);
+			j += 1;
+			// link with previous
+			nfa.link_states(j-1, j);
+			escaped = false;
+		}
 	}
-	
+
 	// add a tail state
 	let tail_state = State::new('%', true);	
 	nfa.add_state(tail_state);
