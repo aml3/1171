@@ -205,104 +205,43 @@ fn main()
 		}
 		else if c == '*' && !escaped
 		{
-			// prev state j
-			// state_in 
-			// state_curr
-			// state_out
-			let mut state_in = nfa.pop();
-			j -= 1;
-			let c = state_in.val;
-			let state_curr = State::new(c, false);
-			state_in.change_val('%');
 			let state_out = State::new('%', false);
-
-			// don't need to link
-			nfa.add_state(state_in);
-			j += 1;
-			// prev state 
-			// state_in j
-			// state_curr
-			// state_out 
-
-			// link to state_in
-			nfa.add_state(state_curr);
-			j += 1;
-			// prev state 
-			// state_in
-			// state_curr j
-			// state_out 
-			nfa.link_states(j-1, j);
 
 			// link to state_curr
 			nfa.add_state(state_out);
 			j += 1;
-			// prev state 
-			// state_in
-			// state_curr
-			// state_out j
 			nfa.link_states(j-1, j);
 
-			nfa.link_states(j-3, j);
+			// link out to curr
+			nfa.link_states(j, j-1);
 
-			// link state_out to state_in,
-			// since it's a *
-			nfa.link_states(j, j-2);
+			// link prev to out, since it's a '*'
+			nfa.link_states(j-2, j);
 		}
 		else if c == '+' && !escaped
 		{
-			let mut state_in = nfa.pop();
-			j -= 1;
-			let c = state_in.val;
-			let state_curr = State::new(c, false);
-			state_in.change_val('%');
 			let state_out = State::new('%', false);
 
-			// don't need to link
-			nfa.add_state(state_in);
-			j += 1;
-
-			// link to state_in
-			nfa.add_state(state_curr);
-			j += 1;
-			nfa.link_states(j-1, j);
-
-			// link to state_curr
 			nfa.add_state(state_out);
 			j += 1;
-			nfa.link_states(j-1, j);
 
-			// link state_out to state_in
-			nfa.link_states(j, j-2);
+			// link out to curr
+			nfa.link_states(j, j-1);
+
+			// link curr to out
+			nfa.link_states(j-1, j);
 		}
 		else if c == '?' && !escaped
 		{
-			let mut state_in = nfa.pop();
-			j -= 1;
-			let c = state_in.val;
-			let state_curr = State::new(c, false);
-			 
-			state_in.change_val('%');
 			let state_out = State::new('%', false);
 
-			// don't need to link
-			nfa.add_state(state_in);
-			j += 1;
-
-			// link to state_in
-			nfa.add_state(state_curr);
-			j += 1;
-			nfa.link_states(j-1, j);
-
-			// link to state_curr
 			nfa.add_state(state_out);
 			j += 1;
+
+			// link to curr to out
 			nfa.link_states(j-1, j);
 
-			// link prev state to state_out
-			nfa.link_states(j-3, j);
-
-			// link state_in to state_out,
-			// since it's a ?
+			// link prev to out
 			nfa.link_states(j-2, j);
 		}
 		else if c == '.' && !escaped
@@ -310,6 +249,7 @@ fn main()
 			let state = State::new(c, false);
 			nfa.add_state(state);
 			j += 1;
+
 			// link with previous
 			nfa.link_states(j-1, j);
 		}
@@ -318,6 +258,7 @@ fn main()
 			let state = State::new(c, false);
 			nfa.add_state(state);
 			j += 1;
+
 			// link with previous
 			nfa.link_states(j-1, j);
 			escaped = false;
@@ -330,6 +271,7 @@ fn main()
 	// link with previous
 	let l = nfa.len();
 	nfa.link_states(l-2, l-1);
+	//nfa.states[nfa.len() - 1].is_accept(true);
 
 	nfa.print();
 
