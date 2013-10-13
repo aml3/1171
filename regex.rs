@@ -76,8 +76,11 @@ impl NFA
 					for j in range(0, self.states[curr[i]].transitions.len())
 					{
 						//println(fmt!("pushing %d", self.states[curr[i]].transitions[j]));
-						curr.push(self.states[curr[i]].transitions[j]);
-						l += 1;
+						if !curr.contains(&self.states[curr[i]].transitions[j])
+						{
+							curr.push(self.states[curr[i]].transitions[j]);
+							l += 1;
+						}
 					}
 				}
 				i += 1;
@@ -188,6 +191,18 @@ fn main()
 			// link this and the previous
 			nfa.link_states(j-1, j);
 		}
+		else if c == ')' && !escaped
+		{
+			let state_out = State::new('%', false);
+			nfa.add_state(state_out);
+			j += 1;
+
+			// link to state_in
+			nfa.link_states(j, parenthesis.pop()-1);
+
+			// link to prev
+			nfa.link_states(j-1, j);
+		}
 		else if c == '*' && !escaped
 		{
 			// prev state j
@@ -227,7 +242,6 @@ fn main()
 			// state_out j
 			nfa.link_states(j-1, j);
 
-			// link prev state to state_out
 			nfa.link_states(j-3, j);
 
 			// link state_out to state_in,
@@ -266,6 +280,7 @@ fn main()
 			j -= 1;
 			let c = state_in.val;
 			let state_curr = State::new(c, false);
+			 
 			state_in.change_val('%');
 			let state_out = State::new('%', false);
 
