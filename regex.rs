@@ -167,48 +167,72 @@ fn generate(lang: &[char], len: uint)	->	~[~str]
 fn main()
 {
 	let test = std::os::args()[1];
-	let lang = ['a', 'b'];
+	let lang = ~['a', 'b'];
 	let len = 4u;
 	let mut strings = ~[];
 	for i in range(0, len+1)
 	{
 		let s = generate(lang, i);
-		for j in range(0,s.len())
-		{
-			strings.push(s[j].clone());
-		}
+		s.map(|x| { strings.push((x).clone()); x.clone() });
 	}
 	let mut nfa = NFA::new();
 	let mut parenthesis: ~[int] = ~[];
 	let mut j = -1;
 	let mut escaped = false;
-	let mut special = false;
-	for i in range(1,(test.len()+1) as int)
+	let mut paren = false;
+	let mut i = 1;
+	while i < test.len()+1
 	{
-		let c = test.char_at((i-1) as uint);
+		let c = test.char_at(i-1);
 		println(fmt!("on %c", c));
 		if c == '\\'
 		{
 			escaped = true;
-			special = false;
+			paren = false;
 		}
 		else if c == '(' && !escaped
 		{
 			parenthesis.push(j+1);
-			special = false;
+			paren = false;
 		}
 		else if c == ')' && !escaped
 		{
-			if special { parenthesis.pop(); }
-			else { special = true; }
+			if paren { parenthesis.pop(); }
+			else { paren = true; }
+		}
+		else if c == '[' && !escaped
+		{
+			if paren { paren = false; }
+		
+			let mut inner = ~[];
+			i += 1;
+			while i < test.len()+1 && test.char_at(i-1) != ']'
+			{
+				inner.push(test.char_at(i-1));
+				i += 1;
+			}
+
+			if inner.len() > 0
+			{
+				let state = State::new(false);
+				nfa.add_state(state);
+				j += 1;
+				if inner[0] == '^'
+				{
+					let mut diff = lang.clone(); 
+					diff.retain(|x| { !inner.contains(x) });
+					diff.map(|x| { nfa.add_transition(j, *x, j+1); *x });
+				}
+				else { inner.map(|x| { nfa.add_transition(j, *x, j+1); *x }); }
+			}
 		}
 		else if c == '*' && !escaped
 		{
 			let mut place = j;
-			if special
+			if paren
 			{
 				place = parenthesis.pop();
-				special = false;
+				paren = false;
 			}
 
 			// link curr to place
@@ -228,10 +252,10 @@ fn main()
 		else if c == '+' && !escaped
 		{
 			let mut place = j;
-			if special
+			if paren
 			{
 				place = parenthesis.pop();
-				special = false;
+				paren = false;
 			}
 			
 			for i in range(0, nfa.states[j].transitions.len())
@@ -246,10 +270,10 @@ fn main()
 		else if c == '?' && !escaped
 		{
 			let mut place = j;
-			if special
+			if paren
 			{
 				place = parenthesis.pop();
-				special = false;
+				paren = false;
 			}
 
 			// add epsilon transition
@@ -257,10 +281,10 @@ fn main()
 		}
 		else if c == '.' && !escaped
 		{
-			if special
+			if paren
 			{
 				parenthesis.pop();
-				special = false;
+				paren = false;
 			}
 			let state = State::new(false);
 			nfa.add_state(state);
@@ -274,10 +298,10 @@ fn main()
 		}
 		else
 		{
-			if special
+			if paren
 			{
 				parenthesis.pop();
-				special = false;
+				paren = false;
 			}
 
 			let state = State::new(false);
@@ -290,6 +314,7 @@ fn main()
 		}
 
 		nfa.print();
+		i += 1;
 	}
 	// make the last state true 
 	let state = State::new(true);
