@@ -179,11 +179,10 @@ fn main()
 		}
 	}
 	let mut nfa = NFA::new();
-	//let mut parenthesis: ~[int] = ~[];
-	//let head_state = State::new(false);
-	//nfa.add_state(head_state);
+	let mut parenthesis: ~[int] = ~[];
 	let mut j = -1;
 	let mut escaped = false;
+	let mut special = false;
 	for i in range(1,(test.len()+1) as int)
 	{
 		let c = test.char_at((i-1) as uint);
@@ -191,63 +190,66 @@ fn main()
 		{
 			escaped = true;
 		}
-		/*
 		else if c == '(' && !escaped
 		{
-			// note the place and make an 'in' state
-			parenthesis.push(i);
-			let state_in = State::new('%', false);
-			nfa.add_state(state_in);
-			j += 1;
-
-			// link this and the previous
-			nfa.link_states(j-1, j);
+			parenthesis.push(j+1);
 		}
 		else if c == ')' && !escaped
 		{
-			let state_out = State::new('%', false);
-			nfa.add_state(state_out);
-			j += 1;
-
-			// link to state_in
-			nfa.link_states(j, parenthesis.pop()-1);
-
-			// link to prev
-			nfa.link_states(j-1, j);
+			special = true;
 		}
-		*/
 		else if c == '*' && !escaped
 		{
-			// link curr to itself
+			let mut place = j;
+			if special
+			{
+				place = parenthesis.pop();
+				special = false;
+			}
+
+			// link curr to place
 			for i in range(0, nfa.states[j].transitions.len())
 			{
 				let (a,_) = (nfa.states[j].transitions[i]).clone();
 				if a != '%'
 				{
-					nfa.add_transition(j, a, j);	
+					nfa.add_transition(j, a, place);	
 				}
 			}
+
 			// add epsilon transition to skip this state
-			nfa.add_transition(j, '%', j+1);
-			
+			nfa.add_transition(place, '%', j+1);
+
 		}
 		else if c == '+' && !escaped
 		{
-			let state_next = State::new(false);
-			// link next to curr
-
-			nfa.add_state(state_next);
-			j += 1;
-
-			// link next to curr 
-			nfa.add_transition(j, '%', j-1);
-			// add transition to next state
-			nfa.add_transition(j, '%', j+1);
+			let mut place = j;
+			if special
+			{
+				place = parenthesis.pop();
+				special = false;
+			}
+			
+			for i in range(0, nfa.states[j].transitions.len())
+			{
+				let (a,_) = (nfa.states[j].transitions[i]).clone();
+				if a != '%'
+				{
+					nfa.add_transition(j, a, place);	
+				}
+			}
 		}
 		else if c == '?' && !escaped
 		{
+			let mut place = j;
+			if special
+			{
+				place = parenthesis.pop();
+				special = false;
+			}
+
 			// add epsilon transition
-			nfa.add_transition(j, '%', j+1);
+			nfa.add_transition(place, '%', j+1);
 		}
 		else if c == '.' && !escaped
 		{
