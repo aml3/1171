@@ -141,11 +141,43 @@ impl State
 	}
 }
 
+fn generate(lang: &[char], len: uint)	->	~[~str]
+{
+	let mut set = ~[];
+	if len == 0 { return ~[~""]; }
+	if len == 1 
+	{
+		for i in range(0, lang.len())
+		{
+			set.push(lang[i].to_str());
+		}
+		return set;
+	}
+	for i in range(0, lang.len())
+	{
+		let s = generate(lang, len-1);
+		for j in range(0, s.len())
+		{
+			set.push(lang[i].to_str() + s[j].clone());
+		}
+	}
+	return set;
+}
+
 fn main()
 {
 	let test = std::os::args()[1];
 	let lang = ['a', 'b'];
-	let strings = ~[~"", ~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
+	let len = 4u;
+	let mut strings = ~[];
+	for i in range(0, len+1)
+	{
+		let s = generate(lang, i);
+		for j in range(0,s.len())
+		{
+			strings.push(s[j].clone());
+		}
+	}
 	let mut nfa = NFA::new();
 	//let mut parenthesis: ~[int] = ~[];
 	//let head_state = State::new(false);
