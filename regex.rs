@@ -186,17 +186,21 @@ fn main()
 	for i in range(1,(test.len()+1) as int)
 	{
 		let c = test.char_at((i-1) as uint);
+		println(fmt!("on %c", c));
 		if c == '\\'
 		{
 			escaped = true;
+			special = false;
 		}
 		else if c == '(' && !escaped
 		{
 			parenthesis.push(j+1);
+			special = false;
 		}
 		else if c == ')' && !escaped
 		{
-			special = true;
+			if special { parenthesis.pop(); }
+			else { special = true; }
 		}
 		else if c == '*' && !escaped
 		{
@@ -253,6 +257,11 @@ fn main()
 		}
 		else if c == '.' && !escaped
 		{
+			if special
+			{
+				parenthesis.pop();
+				special = false;
+			}
 			let state = State::new(false);
 			nfa.add_state(state);
 			j += 1;
@@ -265,6 +274,12 @@ fn main()
 		}
 		else
 		{
+			if special
+			{
+				parenthesis.pop();
+				special = false;
+			}
+
 			let state = State::new(false);
 			nfa.add_state(state);
 			j += 1;
