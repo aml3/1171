@@ -212,21 +212,11 @@ fn main()
 			// add transition to next state
 			nfa.add_transition(j, '%', j+1);
 		}
-		/*
 		else if c == '?' && !escaped
 		{
-			let state_out = State::new('%', false);
-
-			nfa.add_state(state_out);
-			j += 1;
-
-			// link to curr to out
-			nfa.link_states(j-1, j);
-
-			// link prev to out
-			nfa.link_states(j-2, j);
+			// add epsilon transition
+			nfa.add_transition(j, '%', j+1);
 		}
-		*/
 		else if c == '.' && !escaped
 		{
 			let state = State::new(false);
