@@ -5,4 +5,4 @@ A Rust 0.8 implementation based on [Ken Thompson's construction algorithm](http:
 
 This repo's title references this [xkcd comic](http://m.xkcd.com/1171).
 
-Currently supports \*, +, ., ?, (), and escaped (\\) characters.
+Currently supports \*, +, ., ?, (), |, [], [^], and escaped (\\) characters.
