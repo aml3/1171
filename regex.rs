@@ -181,14 +181,26 @@ fn main()
 	let mut escaped = false;
 	let mut paren = false;
 	let mut i = 1;
+
+	let st = State::new(false);
+	nfa.add_state(st);
+	j += 1;
+	nfa.add_transition(j, '%', j+1);
 	while i < test.len()+1
 	{
 		let c = test.char_at(i-1);
-		println(fmt!("on %c", c));
+		//println(fmt!("on %c", c));
 		if c == '\\'
 		{
 			escaped = true;
 			paren = false;
+		}
+		else if c == '|' && !escaped
+		{
+			let state = State::new(true);
+			nfa.add_state(state);
+			j += 1;
+			nfa.add_transition(0, '%', j+1);
 		}
 		else if c == '(' && !escaped
 		{
@@ -313,7 +325,7 @@ fn main()
 			escaped = false;
 		}
 
-		nfa.print();
+		//nfa.print();
 		i += 1;
 	}
 	// make the last state true 
@@ -323,10 +335,44 @@ fn main()
 	nfa.print();
 
 	let curr = ~[0];
-	println(fmt!("Regex is: %s", test));
+/*	
+	let filename = ~"tyger";
+
+	let contents = match std::io::read_whole_file_str(&std::path::PosixPath { is_absolute: false,
+		components: ~[filename]
+	})
+	{
+		Ok(s)	=>	s,
+		_	=>	~"",
+	};
+
+	let mut i = 0;
+	while i < contents.len()
+	{
+		let mut j = contents.len();
+		while j > i
+		{
+			let mut slice = contents.slice(i, j).to_owned();
+			if nfa.check(slice.clone(), curr.clone())
+			{
+				println(slice);
+				//return;
+			}
+			j -= 1;
+		}
+		i += 1;
+	}
+*/
+	
+	//println(fmt!("Regex is: %s", test));
 	for i in range(0, strings.len())
 	{
-		println(fmt!("%? %?", strings[i], nfa.check(strings[i].clone(), curr.clone())));
+		print(fmt!("%?", strings[i]));
+		let b = nfa.check(strings[i].clone(), curr.clone());
+		print(fmt!(" %?", b));
+		print("\n");
+		
 	}
+	
 	
 }
