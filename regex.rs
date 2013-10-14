@@ -15,9 +15,9 @@ impl NFA
 		self.states.push(state);
 	}
 
-	pub fn link_states(&mut self, id0: int, id1: int)
+	pub fn add_transition(&mut self, id0: int, c: char, id1: int)
 	{
-		self.states[id0].add_transition(id1);
+		self.states[id0].add_transition(c, id1);
 	}
 
 	pub fn print(&self)
@@ -40,7 +40,6 @@ impl NFA
 	{
 		self.states.len() as int
 	}
-
 	pub fn check(&self, string: ~str, c: ~[int])		->	bool
 	{
 		let mut curr = c.clone();
@@ -55,41 +54,25 @@ impl NFA
 			let mut i = 0;
 			while i < l
 			{
-				//println(fmt!("on character %?, state=%? val=%?", c, curr[i], self.states[curr[i]].val));
-				if self.states[curr[i]].val == c
+				for j in range(0, self.states[curr[i]].transitions.len())
 				{
-					for j in range(0, self.states[curr[i]].transitions.len())
+					let (t, id) = (self.states[curr[i]].transitions[j]).clone();
+					if t == c
 					{
-						//println(fmt!("adding %d", self.states[curr[i]].transitions[j]));
-						next.push(self.states[curr[i]].transitions[j]);
+						next.push(id);
 					}
-				} 
-				else if self.states[curr[i]].val == '.'
-				{
-					for j in range(0, self.states[curr[i]].transitions.len())
+					else if t == '%'
 					{
-						next.push(self.states[curr[i]].transitions[j]);
-					}
-				}
-				else if self.states[curr[i]].val == '%'
-				{
-					for j in range(0, self.states[curr[i]].transitions.len())
-					{
-						//println(fmt!("pushing %d", self.states[curr[i]].transitions[j]));
-						if !curr.contains(&self.states[curr[i]].transitions[j])
-						{
-							curr.push(self.states[curr[i]].transitions[j]);
-							l += 1;
-						}
+						curr.push(id);
+						l += 1;
 					}
 				}
 				i += 1;
-				//println(fmt!("curr=%? next=%? l=%? i=%?", curr,next,l, i));
 			}
 			if next.len() == 0 { return false; }
 			return self.check(string.slice_from(1).to_owned(), next);
 		}
-		else
+		else // the NFA has eaten all of the characters
 		{ 	
 			// see if we're in a matching state
 			for i in range(0, curr.len())
@@ -104,11 +87,12 @@ impl NFA
 			let mut next = ~[];
 			for i in range(0, curr.len())
 			{
-				if self.states[curr[i]].val == '%'
+				for j in range(0, self.states[curr[i]].transitions.len())
 				{
-					for j in range(0, self.states[curr[i]].transitions.len())
+					let (t , id) = (self.states[curr[i]].transitions[j]).clone();
+					if t == '%'
 					{
-						next.push(self.states[curr[i]].transitions[j]);
+						next.push(id);
 					}
 				}
 			}
@@ -122,24 +106,23 @@ impl NFA
 	}
 }
 
-#[deriving(Clone,DeepClone, Eq)]
+#[deriving(Clone, Eq)]
 struct State
 {
-	val: char,
 	accept: bool,
-	transitions: ~[int]
+	transitions: ~[(char, int)]
 }
 
 impl State
 {
-	pub fn new(c: char, b: bool)	->	State
+	pub fn new(b: bool)	->	State
 	{
-		State { val: c, accept: b, transitions: ~[] }
+		State { accept: b, transitions: ~[] }
 	}
 
 	pub fn print(&self)
 	{
-		print(fmt!("value=%? matching=%? transitions={", self.val, self.accept));
+		print(fmt!("matching=%? transitions={", self.accept));
 		for i in range(0, self.transitions.len())
 		{
 			print(fmt!("%?,", self.transitions[i]));
@@ -152,26 +135,22 @@ impl State
 		self.accept = b;
 	}
 
-	pub fn add_transition(&mut self, id: int)
+	pub fn add_transition(&mut self, c: char, id: int )
 	{
-		self.transitions.push(id);
-	}
-
-	pub fn change_val(&mut self, c: char)
-	{
-		self.val = c;
+		self.transitions.push((c, id));
 	}
 }
 
 fn main()
 {
 	let test = std::os::args()[1];
+	let lang = ['a', 'b'];
 	let strings = ~[~"", ~"a", ~"b", ~"aa", ~"bb", ~"ab", ~"ba", ~"aab", ~"aba", ~"baa", ~"abb", ~"bab", ~"bba", ~"bbb", ~"aaa", ~"abbb", ~"abba"];
 	let mut nfa = NFA::new();
-	let mut parenthesis: ~[int] = ~[];
-	let head_state = State::new('%', false);
-	nfa.add_state(head_state);
-	let mut j = 0;
+	//let mut parenthesis: ~[int] = ~[];
+	//let head_state = State::new(false);
+	//nfa.add_state(head_state);
+	let mut j = -1;
 	let mut escaped = false;
 	for i in range(1,(test.len()+1) as int)
 	{
@@ -180,6 +159,7 @@ fn main()
 		{
 			escaped = true;
 		}
+		/*
 		else if c == '(' && !escaped
 		{
 			// note the place and make an 'in' state
@@ -203,34 +183,36 @@ fn main()
 			// link to prev
 			nfa.link_states(j-1, j);
 		}
+		*/
 		else if c == '*' && !escaped
 		{
-			let state_out = State::new('%', false);
-
-			// link to state_curr
-			nfa.add_state(state_out);
-			j += 1;
-			nfa.link_states(j-1, j);
-
-			// link out to curr
-			nfa.link_states(j, j-1);
-
-			// link prev to out, since it's a '*'
-			nfa.link_states(j-2, j);
+			// link curr to itself
+			for i in range(0, nfa.states[j].transitions.len())
+			{
+				let (a,_) = (nfa.states[j].transitions[i]).clone();
+				if a != '%'
+				{
+					nfa.add_transition(j, a, j);	
+				}
+			}
+			// add epsilon transition to skip this state
+			nfa.add_transition(j, '%', j+1);
+			
 		}
 		else if c == '+' && !escaped
 		{
-			let state_out = State::new('%', false);
+			let state_next = State::new(false);
+			// link next to curr
 
-			nfa.add_state(state_out);
+			nfa.add_state(state_next);
 			j += 1;
 
-			// link out to curr
-			nfa.link_states(j, j-1);
-
-			// link curr to out
-			nfa.link_states(j-1, j);
+			// link next to curr 
+			nfa.add_transition(j, '%', j-1);
+			// add transition to next state
+			nfa.add_transition(j, '%', j+1);
 		}
+		/*
 		else if c == '?' && !escaped
 		{
 			let state_out = State::new('%', false);
@@ -244,35 +226,36 @@ fn main()
 			// link prev to out
 			nfa.link_states(j-2, j);
 		}
+		*/
 		else if c == '.' && !escaped
 		{
-			let state = State::new(c, false);
+			let state = State::new(false);
 			nfa.add_state(state);
 			j += 1;
 
-			// link with previous
-			nfa.link_states(j-1, j);
+			// unconditional jump 
+			for i in range(0, lang.len())
+			{
+				nfa.add_transition(j, lang[i], j+1);
+			}
 		}
 		else
 		{
-			let state = State::new(c, false);
+			let state = State::new(false);
 			nfa.add_state(state);
 			j += 1;
 
-			// link with previous
-			nfa.link_states(j-1, j);
+			// link with next 
+			nfa.add_transition(j, c, j+1);
 			escaped = false;
 		}
+
+		nfa.print();
 	}
-
-	// add a tail state
-	let tail_state = State::new('%', true);	
-	nfa.add_state(tail_state);
-	// link with previous
-	let l = nfa.len();
-	nfa.link_states(l-2, l-1);
-	//nfa.states[nfa.len() - 1].is_accept(true);
-
+	// make the last state true 
+	let state = State::new(true);
+	nfa.add_state(state);
+	
 	nfa.print();
 
 	let curr = ~[0];
@@ -281,4 +264,5 @@ fn main()
 	{
 		println(fmt!("%? %?", strings[i], nfa.check(strings[i].clone(), curr.clone())));
 	}
+	
 }
